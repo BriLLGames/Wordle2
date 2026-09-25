@@ -1,0 +1,796 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>СЛОВО — игра в угадай слово</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2218%22 fill=%22%233E6259%22/><text x=%2250%22 y=%2268%22 font-size=%2258%22 text-anchor=%22middle%22 fill=%22%23EAF3EF%22 font-family=%22sans-serif%22 font-weight=%22700%22>C</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body[data-theme="dark"]{
+    --bg:#14161c; --surface:#1b1e26; --surface-2:#242833; --raised:#2a2f3b;
+    --text:#EDEAE2; --text-soft:#9aa0ad; --border:#2f3440; --border-soft:#333947;
+    --correct:#3E6259; --correct-text:#EAF3EF;
+    --present:#C98A3E; --present-text:#2b1c05;
+    --absent:#3a3f4b; --absent-text:#c9cdd6;
+    --brand:#3E6259; --brand-text:#EAF3EF; --brand-hover:#4b7468;
+    --danger:#c9534b; --shadow: 0 12px 32px rgba(0,0,0,.45);
+  }
+  body[data-theme="light"]{
+    --bg:#F1ECDF; --surface:#ffffff; --surface-2:#f7f3e9; --raised:#ffffff;
+    --text:#1E1B16; --text-soft:#716a5a; --border:#ddd5c1; --border-soft:#e6dfcd;
+    --correct:#3E6259; --correct-text:#EAF3EF;
+    --present:#C98A3E; --present-text:#2b1c05;
+    --absent:#d8d1bd; --absent-text:#57503f;
+    --brand:#3E6259; --brand-text:#EAF3EF; --brand-hover:#345349;
+    --danger:#b8483f; --shadow: 0 12px 28px rgba(60,50,30,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    transition:background .25s ease, color .25s ease;
+    overflow-x:hidden;
+  }
+  h1,h2,h3{font-family:'Fraunces',serif; margin:0; font-weight:600;}
+  button{font-family:inherit;}
+  .wrap{max-width:640px; margin:0 auto; padding:20px 20px 48px;}
+
+  /* ---------- Top bar ---------- */
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0 18px;}
+  .brandmark{display:flex; align-items:center; gap:8px; font-family:'Fraunces',serif; font-weight:700; font-size:1.15rem; letter-spacing:.2px;}
+  .brandmark .dot{width:10px;height:10px;border-radius:3px;background:var(--correct);}
+  .controls{display:flex; gap:8px;}
+  .iconbtn{
+    display:flex; align-items:center; justify-content:center;
+    width:40px; height:40px; border-radius:11px;
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    cursor:pointer; font-size:1rem; transition:transform .15s ease, background .15s ease;
+  }
+  .iconbtn:hover{background:var(--surface-2);}
+  .iconbtn:active{transform:scale(.92);}
+  .langbtn{width:auto; padding:0 12px; font-weight:600; font-size:.82rem; letter-spacing:.3px;}
+
+  /* ---------- Home hero ---------- */
+  .hero{text-align:center; padding:28px 0 8px;}
+  .hero-tiles{display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:22px;}
+  .hero-tiles .htile{
+    width:52px; height:52px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces',serif; font-weight:700; font-size:1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .hero p.sub{color:var(--text-soft); font-size:1.02rem; max-width:420px; margin:0 auto; line-height:1.5;}
+
+  .home-actions{display:flex; flex-direction:column; gap:12px; margin:32px auto 8px; max-width:360px;}
+  .btn{
+    border:none; border-radius:13px; padding:15px 20px; font-size:1rem; font-weight:600;
+    cursor:pointer; transition:transform .12s ease, filter .15s ease, background .15s ease;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn-primary{background:var(--brand); color:var(--brand-text);}
+  .btn-primary:hover{background:var(--brand-hover);}
+  .btn-outline{background:transparent; color:var(--text); border:1.5px solid var(--border-soft);}
+  .btn-outline:hover{background:var(--surface-2);}
+  .btn-full{width:100%;}
+  .btn-sm{padding:10px 16px; font-size:.92rem; border-radius:10px;}
+
+  .home-foot{text-align:center; color:var(--text-soft); font-size:.82rem; margin-top:40px; line-height:1.6;}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(10,10,10,.55); backdrop-filter:blur(3px);
+    display:flex; align-items:flex-end; justify-content:center; z-index:50;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .overlay.show{opacity:1; pointer-events:auto;}
+  @media(min-width:560px){ .overlay{align-items:center;} }
+  .modal{
+    background:var(--surface); width:100%; max-width:440px; border-radius:20px 20px 0 0;
+    padding:26px 22px 28px; box-shadow:var(--shadow);
+    transform:translateY(24px); transition:transform .25s ease;
+    max-height:88vh; overflow-y:auto;
+  }
+  @media(min-width:560px){ .modal{border-radius:20px; margin:20px;} }
+  .overlay.show .modal{transform:translateY(0);}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .modal h2{font-size:1.35rem;}
+  .modal p.desc{color:var(--text-soft); font-size:.92rem; line-height:1.5; margin:8px 0 18px;}
+  .closeX{background:none;border:none;color:var(--text-soft);font-size:1.4rem;cursor:pointer;line-height:1;padding:4px;}
+
+  .field label{display:block; font-size:.8rem; color:var(--text-soft); margin-bottom:6px; font-weight:600;}
+  .field input[type=text]{
+    width:100%; padding:13px 14px; border-radius:11px; border:1.5px solid var(--border-soft);
+    background:var(--surface-2); color:var(--text); font-size:1.1rem; letter-spacing:1px;
+    font-family:'Space Grotesk',monospace; text-transform:uppercase;
+  }
+  .field input[type=text]:focus{outline:none; border-color:var(--brand);}
+  .helper{font-size:.78rem; color:var(--text-soft); margin-top:6px;}
+  .errline{font-size:.82rem; color:var(--danger); margin-top:8px; min-height:1.1em; font-weight:600;}
+
+  .linkbox{display:flex; gap:8px; margin-top:6px;}
+  .linkbox input{
+    flex:1; padding:12px 13px; border-radius:11px; border:1.5px solid var(--border-soft);
+    background:var(--surface-2); color:var(--text); font-size:.85rem; overflow:hidden; text-overflow:ellipsis;
+  }
+  .result-block{display:none; margin-top:18px; padding-top:18px; border-top:1px dashed var(--border-soft);}
+  .result-block.show{display:block;}
+  .copied-msg{font-size:.8rem; color:var(--correct); margin-top:8px; height:1em; opacity:0; transition:opacity .2s ease; font-weight:600;}
+  .copied-msg.show{opacity:1;}
+
+  /* ---------- Game screen ---------- */
+  #game-screen{display:none;}
+  .game-wrap{max-width:560px; margin:0 auto; padding:10px 14px 30px;}
+  .board-scroller{overflow-x:auto; padding:14px 4px 6px; -ms-overflow-style:none; scrollbar-width:none;}
+  .board-scroller::-webkit-scrollbar{display:none;}
+  .board{display:flex; flex-direction:column; gap:var(--tile-gap,8px); margin:0 auto; width:max-content;}
+  .row{display:flex; gap:var(--tile-gap,8px);}
+  .row.shake{animation:shake .32s ease;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-3px);} 20%,80%{transform:translateX(4px);}
+    30%,50%,70%{transform:translateX(-6px);} 40%,60%{transform:translateX(6px);}
+  }
+  .tile{
+    width:var(--tile-size,52px); height:var(--tile-size,52px);
+    border:2px solid var(--border-soft); border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Grotesk',sans-serif; font-weight:700;
+    font-size:calc(var(--tile-size,52px) * 0.42);
+    color:var(--text); background:var(--surface);
+    transition:transform .28s ease, background .15s ease, border-color .15s ease;
+  }
+  .tile.filled{border-color:var(--text-soft);}
+  .tile.pop{animation:pop .12s ease;}
+  @keyframes pop{ 50%{transform:scale(1.08);} }
+  .tile.correct{background:var(--correct); border-color:var(--correct); color:var(--correct-text);}
+  .tile.present{background:var(--present); border-color:var(--present); color:var(--present-text);}
+  .tile.absent{background:var(--absent); border-color:var(--absent); color:var(--absent-text);}
+
+  .msgline{text-align:center; min-height:1.4em; font-size:.88rem; font-weight:600; color:var(--danger); margin:6px 0 2px;}
+
+  .keyboard{margin-top:18px; display:flex; flex-direction:column; gap:7px; align-items:center;}
+  .krow{display:flex; gap:6px; justify-content:center; width:100%;}
+  .key{
+    flex:1; max-width:40px; min-width:24px; height:48px; border-radius:8px; border:none;
+    background:var(--surface-2); color:var(--text); font-weight:600; font-size:.82rem;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:transform .1s ease, background .15s ease; user-select:none;
+  }
+  .key:active{transform:scale(.92);}
+  .key.wide{max-width:70px; font-size:.68rem; flex:1.6;}
+  .key.correct{background:var(--correct); color:var(--correct-text);}
+  .key.present{background:var(--present); color:var(--present-text);}
+  .key.absent{background:var(--absent); color:var(--absent-text); opacity:.6;}
+
+  .gamehead{display:flex; align-items:center; justify-content:space-between; padding-top:8px;}
+  .gamehead .title{font-family:'Fraunces',serif; font-weight:600; font-size:1.05rem;}
+  .backbtn{background:none; border:none; color:var(--text-soft); font-size:.85rem; cursor:pointer; display:flex; align-items:center; gap:4px; font-weight:600;}
+
+  /* ---------- Intro / result overlays ---------- */
+  .center-modal{text-align:center;}
+  .center-modal .emoji{font-size:2.4rem; margin-bottom:6px;}
+  .word-reveal{
+    font-family:'Fraunces',serif; font-weight:700; font-size:1.6rem; letter-spacing:2px;
+    color:var(--brand); margin:6px 0 2px; word-break:break-all;
+  }
+  .stat-row{display:flex; justify-content:center; gap:22px; margin:18px 0 6px;}
+  .stat{text-align:center;}
+  .stat .num{font-family:'Fraunces',serif; font-size:1.6rem; font-weight:700;}
+  .stat .lbl{font-size:.72rem; color:var(--text-soft); font-weight:600; text-transform:none;}
+  .modal-actions{display:flex; flex-direction:column; gap:10px; margin-top:20px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001s !important; transition-duration:.001s !important;}
+  }
+</style>
+</head>
+<body data-theme="dark">
+
+<div id="home-screen">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brandmark"><span class="dot"></span><span data-i18n="brand">СЛОВО</span></div>
+      <div class="controls">
+        <button class="iconbtn langbtn" id="lang-toggle" title="Язык / Language">RU</button>
+        <button class="iconbtn" id="theme-toggle" title="Тема">🌙</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-tiles" id="hero-tiles"></div>
+      <p class="sub" data-i18n="subtitle">Угадай загаданное слово за 6 попыток — классическая игра, в которую можно играть с друзьями по ссылке.</p>
+    </div>
+
+    <div class="home-actions">
+      <button class="btn btn-primary btn-full" id="btn-random" data-i18n="playRandomBtn">Играть случайное слово</button>
+      <button class="btn btn-outline btn-full" id="btn-create" data-i18n="createBtn">Загадать слово другу</button>
+    </div>
+
+    <div class="home-foot" data-i18n="footNote">Ссылки не зашифрованы, только слегка закодированы — для интриги. Никакие слова никуда не отправляются: всё работает прямо в браузере.</div>
+  </div>
+</div>
+
+<div id="game-screen">
+  <div class="game-wrap">
+    <div class="gamehead">
+      <button class="backbtn" id="btn-home"><span>←</span><span data-i18n="homeBtn">На главную</span></button>
+      <div class="title" id="game-title" data-i18n="brand">СЛОВО</div>
+      <div class="controls">
+        <button class="iconbtn" id="theme-toggle-2" title="Тема">🌙</button>
+      </div>
+    </div>
+    <div class="msgline" id="msgline">&nbsp;</div>
+    <div class="board-scroller"><div class="board" id="board"></div></div>
+    <div class="keyboard" id="keyboard"></div>
+  </div>
+</div>
+
+<!-- Create-word modal -->
+<div class="overlay" id="create-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 data-i18n="modalTitle">Загадать слово</h2>
+      <button class="closeX" id="close-create">×</button>
+    </div>
+    <p class="desc" data-i18n="modalDesc">Впишите слово (4–16 букв, только буквы, без пробелов). Мы превратим его в ссылку, которую можно отправить другу.</p>
+    <div class="field">
+      <label data-i18n="inputLabel">Ваше слово</label>
+      <input type="text" id="word-input" maxlength="16" autocomplete="off" spellcheck="false" data-i18n-ph="inputPlaceholder" placeholder="СЛОВО">
+      <div class="errline" id="create-err">&nbsp;</div>
+    </div>
+    <button class="btn btn-primary btn-full" id="btn-generate" data-i18n="generateBtn" style="margin-top:6px;">Сгенерировать ссылку</button>
+
+    <div class="result-block" id="result-block">
+      <label style="display:block; font-size:.8rem; color:var(--text-soft); margin-bottom:6px; font-weight:600;" data-i18n="linkLabel">Ссылка готова</label>
+      <div class="linkbox">
+        <input type="text" id="link-output" readonly>
+        <button class="btn btn-outline btn-sm" id="btn-copy" data-i18n="copyBtn">Копировать</button>
+      </div>
+      <div class="copied-msg" id="copied-msg" data-i18n="copiedMsg">Скопировано!</div>
+    </div>
+  </div>
+</div>
+
+<!-- Intro overlay for a shared word -->
+<div class="overlay" id="intro-overlay">
+  <div class="modal center-modal">
+    <div class="emoji">✉️</div>
+    <h2 data-i18n="introTitle">Вам загадали слово</h2>
+    <p class="desc" id="intro-desc">Отгадайте слово из <b id="intro-len">?</b> букв за 6 попыток. Удачи!</p>
+    <button class="btn btn-primary btn-full" id="btn-start" data-i18n="startBtn">Начать угадывать</button>
+  </div>
+</div>
+
+<!-- Win/Lose overlay -->
+<div class="overlay" id="end-overlay">
+  <div class="modal center-modal">
+    <div class="emoji" id="end-emoji">🎉</div>
+    <h2 id="end-title" data-i18n="winTitle">Отлично!</h2>
+    <div class="word-reveal" id="end-word"></div>
+    <div class="stat-row" id="end-stats">
+      <div class="stat"><div class="num" id="end-attempts">-</div><div class="lbl" data-i18n="attemptsLbl">попыток</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" id="btn-play-random" data-i18n="playAgainBtn">Играть новое случайное слово</button>
+      <button class="btn btn-outline btn-full" id="btn-new-challenge" data-i18n="newChallengeBtn">Загадать своё слово</button>
+    </div>
+  </div>
+</div>
+
+<!-- Error overlay for a broken link -->
+<div class="overlay" id="broken-overlay">
+  <div class="modal center-modal">
+    <div class="emoji">🧩</div>
+    <h2 data-i18n="brokenTitle">Ссылка повреждена</h2>
+    <p class="desc" data-i18n="brokenDesc">Не удалось прочитать загаданное слово из этой ссылки.</p>
+    <button class="btn btn-primary btn-full" id="btn-broken-home" data-i18n="homeBtn">На главную</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================= i18n ============================= */
+const I18N = {
+  ru:{
+    brand:"СЛОВО",
+    subtitle:"Угадай загаданное слово за 6 попыток — классическая игра, в которую можно играть с друзьями по ссылке.",
+    playRandomBtn:"Играть случайное слово",
+    createBtn:"Загадать слово другу",
+    footNote:"Ссылки не зашифрованы, только слегка закодированы — для интриги. Никакие слова никуда не отправляются: всё работает прямо в браузере.",
+    modalTitle:"Загадать слово",
+    modalDesc:"Впишите слово (4–16 букв, только буквы, без пробелов). Мы превратим его в ссылку, которую можно отправить другу.",
+    inputLabel:"Ваше слово",
+    inputPlaceholder:"СЛОВО",
+    generateBtn:"Сгенерировать ссылку",
+    linkLabel:"Ссылка готова",
+    copyBtn:"Копировать",
+    copiedMsg:"Скопировано!",
+    errLen:"Слово должно содержать от 4 до 16 букв.",
+    errChars:"Разрешены только буквы, без пробелов и символов.",
+    errEmpty:"Введите слово.",
+    introTitle:"Вам загадали слово",
+    introDesc:"Отгадайте слово из {n} букв за 6 попыток. Удачи!",
+    startBtn:"Начать угадывать",
+    homeBtn:"На главную",
+    winTitle:"Отлично!",
+    winDesc:"Вы угадали слово за {n} из 6 попыток.",
+    loseTitle:"Почти получилось",
+    loseDesc:"Загаданное слово:",
+    attemptsLbl:"попыток",
+    playAgainBtn:"Играть новое случайное слово",
+    newChallengeBtn:"Загадать своё слово",
+    brokenTitle:"Ссылка повреждена",
+    brokenDesc:"Не удалось прочитать загаданное слово из этой ссылки.",
+    guessLenErr:"Слово должно быть из {n} букв",
+    guessCharErr:"Только буквы",
+    enter:"ВВОД",
+    backspace:"⌫"
+  },
+  en:{
+    brand:"WORDLE",
+    subtitle:"Guess the hidden word in 6 tries — the classic game you can also play with friends over a link.",
+    playRandomBtn:"Play a random word",
+    createBtn:"Challenge a friend",
+    footNote:"Links aren't encrypted — just gently scrambled for a bit of mystery. No word is ever sent anywhere: everything runs in your browser.",
+    modalTitle:"Create a challenge",
+    modalDesc:"Type a word (4–16 letters, letters only, no spaces). We'll turn it into a link you can send to a friend.",
+    inputLabel:"Your word",
+    inputPlaceholder:"WORDLE",
+    generateBtn:"Generate link",
+    linkLabel:"Your link is ready",
+    copyBtn:"Copy",
+    copiedMsg:"Copied!",
+    errLen:"The word must be 4 to 16 letters long.",
+    errChars:"Only letters are allowed — no spaces or symbols.",
+    errEmpty:"Type a word first.",
+    introTitle:"You've been challenged",
+    introDesc:"Guess the {n}-letter word in 6 tries. Good luck!",
+    startBtn:"Start guessing",
+    homeBtn:"Home",
+    winTitle:"Brilliant!",
+    winDesc:"You found it in {n} of 6 tries.",
+    loseTitle:"So close",
+    loseDesc:"The word was:",
+    attemptsLbl:"tries",
+    playAgainBtn:"Play a new random word",
+    newChallengeBtn:"Create your own word",
+    brokenTitle:"Broken link",
+    brokenDesc:"This link's hidden word couldn't be read.",
+    guessLenErr:"Word must be {n} letters",
+    guessCharErr:"Letters only",
+    enter:"ENTER",
+    backspace:"⌫"
+  }
+};
+
+/* ============================= word banks ============================= */
+const WORDS = {
+  ru:["вода","окно","город","улица","машина","собака","кошка","солнце","звезда","облако","дождь","снег",
+      "река","море","гора","поле","цветок","дерево","птица","рыба","хлеб","молоко","кофе","сахар","соль",
+      "перец","яблоко","банан","арбуз","дыня","груша","слива","вишня","ягода","гриб","лист","ветер",
+      "радуга","молния","гром","туман","иней","зима","весна","лето","осень","утро","вечер","ночь","день",
+      "время","часы","минута","неделя","месяц","человек","друг","семья","мама","папа","брат","сестра",
+      "учитель","ученик","школа","ручка","тетрадь","карандаш","стул","комната","кухня","балкон","крыша",
+      "забор","двор","площадь","парк","театр","музей","музыка","песня","танец","картина","рисунок",
+      "игрушка","игра","кукла","самолет","поезд","корабль","автобус","такси","велосипед"],
+  en:["house","plant","chair","light","music","cloud","stone","bread","dream","field","green","happy",
+      "juice","knife","lemon","mango","night","ocean","paper","queen","smile","table","under","voice",
+      "water","world","apple","beach","brave","candy","dance","eagle","flame","grape","heart","index",
+      "lodge","mount","noble","olive","piano","quilt","robot","sugar","tiger","river","forest","garden",
+      "bridge","castle","desert","engine","flower","guitar","harbor","island","jacket","kitten","ladder",
+      "mirror","needle","orange","pencil","rocket","sunset","turtle","umbrella","violet","window","yellow"]
+};
+const RU_ALPHA = /^[А-Яа-яЁё]+$/;
+const EN_ALPHA = /^[A-Za-z]+$/;
+
+const KEYROWS = {
+  ru:[["Й","Ц","У","К","Е","Н","Г","Ш","Щ","З","Х","Ъ"],
+      ["Ф","Ы","В","А","П","Р","О","Л","Д","Ж","Э"],
+      ["ENTER","Я","Ч","С","М","И","Т","Ь","Б","Ю","BACK"]],
+  en:[["Q","W","E","R","T","Y","U","I","O","P"],
+      ["A","S","D","F","G","H","J","K","L"],
+      ["ENTER","Z","X","C","V","B","N","M","BACK"]]
+};
+
+/* ============================= state ============================= */
+const state = {
+  uiLang: localStorage.getItem("wordle_lang") || "ru",
+  theme: localStorage.getItem("wordle_theme") || "dark",
+  puzzle: null,        // {word, lang}
+  guesses: [],
+  current: "",
+  finished: false,
+  keyStatus: {}
+};
+
+function t(key, vars){
+  let s = I18N[state.uiLang][key] || key;
+  if(vars) for(const k in vars) s = s.replace("{"+k+"}", vars[k]);
+  return s;
+}
+
+/* ============================= encode / decode ============================= */
+function encodeWord(word, lang){
+  const payload = lang + ":" + word.toUpperCase();
+  const bytes = new TextEncoder().encode(payload);
+  let bin = "";
+  for(const b of bytes) bin += String.fromCharCode(b ^ 0x5A);
+  let b64 = btoa(bin);
+  return b64.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function decodeWord(code){
+  try{
+    let b64 = code.replace(/-/g,"+").replace(/_/g,"/");
+    while(b64.length % 4) b64 += "=";
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i) ^ 0x5A;
+    const payload = new TextDecoder().decode(bytes);
+    const idx = payload.indexOf(":");
+    const lang = payload.slice(0,idx);
+    const word = payload.slice(idx+1);
+    if((lang!=="ru" && lang!=="en") || !word) return null;
+    const re = lang==="ru" ? RU_ALPHA : EN_ALPHA;
+    if(word.length<4 || word.length>16 || !re.test(word)) return null;
+    return {word, lang};
+  }catch(e){ return null; }
+}
+
+/* ============================= theme & language ============================= */
+function applyTheme(){
+  document.body.setAttribute("data-theme", state.theme);
+  const icon = state.theme==="dark" ? "☀️" : "🌙";
+  document.getElementById("theme-toggle").textContent = icon;
+  document.getElementById("theme-toggle-2").textContent = icon;
+  localStorage.setItem("wordle_theme", state.theme);
+}
+function applyLang(){
+  document.documentElement.lang = state.uiLang;
+  document.getElementById("lang-toggle").textContent = state.uiLang.toUpperCase();
+  document.querySelectorAll("[data-i18n]").forEach(el=>{
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{
+    el.setAttribute("placeholder", t(el.getAttribute("data-i18n-ph")));
+  });
+  localStorage.setItem("wordle_lang", state.uiLang);
+  renderHeroTiles();
+}
+document.getElementById("theme-toggle").onclick = ()=>{ state.theme = state.theme==="dark"?"light":"dark"; applyTheme(); };
+document.getElementById("theme-toggle-2").onclick = ()=>{ state.theme = state.theme==="dark"?"light":"dark"; applyTheme(); };
+document.getElementById("lang-toggle").onclick = ()=>{ state.uiLang = state.uiLang==="ru"?"en":"ru"; applyLang(); };
+
+/* ============================= hero tiles ============================= */
+function renderHeroTiles(){
+  const word = t("brand");
+  const box = document.getElementById("hero-tiles");
+  box.innerHTML = "";
+  const palette = ["correct","present","absent"];
+  const colors = {correct:"var(--correct)", present:"var(--present)", absent:"var(--absent)"};
+  const textColors = {correct:"var(--correct-text)", present:"var(--present-text)", absent:"var(--absent-text)"};
+  [...word].forEach((ch,i)=>{
+    const st = palette[i % 3];
+    const d = document.createElement("div");
+    d.className = "htile";
+    d.style.background = colors[st];
+    d.style.color = textColors[st];
+    d.textContent = ch;
+    box.appendChild(d);
+  });
+}
+
+/* ============================= modal helpers ============================= */
+function openOverlay(id){ document.getElementById(id).classList.add("show"); }
+function closeOverlay(id){ document.getElementById(id).classList.remove("show"); }
+
+document.getElementById("btn-create").onclick = ()=>{
+  document.getElementById("word-input").value="";
+  document.getElementById("create-err").innerHTML="&nbsp;";
+  document.getElementById("result-block").classList.remove("show");
+  openOverlay("create-overlay");
+  setTimeout(()=>document.getElementById("word-input").focus(),150);
+};
+document.getElementById("close-create").onclick = ()=>closeOverlay("create-overlay");
+document.getElementById("create-overlay").addEventListener("click",(e)=>{ if(e.target.id==="create-overlay") closeOverlay("create-overlay"); });
+
+document.getElementById("word-input").addEventListener("input",(e)=>{
+  const re = state.uiLang==="ru" ? /[^А-Яа-яЁё]/g : /[^A-Za-z]/g;
+  e.target.value = e.target.value.replace(re,"").toUpperCase();
+});
+
+document.getElementById("btn-generate").onclick = ()=>{
+  const raw = document.getElementById("word-input").value.trim();
+  const errEl = document.getElementById("create-err");
+  const re = state.uiLang==="ru" ? RU_ALPHA : EN_ALPHA;
+  if(!raw){ errEl.textContent = t("errEmpty"); return; }
+  if(!re.test(raw)){ errEl.textContent = t("errChars"); return; }
+  if(raw.length<4 || raw.length>16){ errEl.textContent = t("errLen"); return; }
+  errEl.innerHTML = "&nbsp;";
+  const code = encodeWord(raw, state.uiLang);
+  const url = location.origin + location.pathname + "#w=" + code;
+  const out = document.getElementById("link-output");
+  out.value = url;
+  document.getElementById("result-block").classList.add("show");
+  document.getElementById("copied-msg").classList.remove("show");
+};
+
+document.getElementById("btn-copy").onclick = async ()=>{
+  const out = document.getElementById("link-output");
+  out.select(); out.setSelectionRange(0,9999);
+  try{
+    await navigator.clipboard.writeText(out.value);
+  }catch(e){
+    try{ document.execCommand("copy"); }catch(e2){}
+  }
+  const msg = document.getElementById("copied-msg");
+  msg.classList.add("show");
+  setTimeout(()=>msg.classList.remove("show"),1600);
+};
+
+document.getElementById("btn-home").onclick = goHome;
+document.getElementById("btn-broken-home").onclick = goHome;
+function goHome(){
+  closeOverlay("end-overlay"); closeOverlay("intro-overlay"); closeOverlay("broken-overlay");
+  history.pushState("", document.title, location.pathname + location.search);
+  document.getElementById("game-screen").style.display = "none";
+  document.getElementById("home-screen").style.display = "block";
+}
+
+document.getElementById("btn-play-random").onclick = ()=>{
+  closeOverlay("end-overlay");
+  startRandomGame();
+};
+document.getElementById("btn-new-challenge").onclick = ()=>{
+  closeOverlay("end-overlay");
+  goHome();
+  document.getElementById("btn-create").click();
+};
+
+/* ============================= game logic ============================= */
+function computeTileSize(len){
+  const available = Math.min(window.innerWidth*0.92, 560) - 8;
+  const gap = 8;
+  let size = Math.floor((available - gap*(len-1))/len);
+  size = Math.max(30, Math.min(64, size));
+  return size;
+}
+
+function startGame(word, lang){
+  state.puzzle = {word: word.toUpperCase(), lang};
+  state.guesses = [];
+  state.current = "";
+  state.finished = false;
+  state.keyStatus = {};
+  document.getElementById("home-screen").style.display="none";
+  document.getElementById("game-screen").style.display="block";
+  document.getElementById("game-title").textContent = t("brand");
+  document.getElementById("msgline").innerHTML = "&nbsp;";
+  buildBoard();
+  buildKeyboard();
+}
+
+function startRandomGame(){
+  const lang = state.uiLang;
+  const bank = WORDS[lang];
+  const word = bank[Math.floor(Math.random()*bank.length)];
+  history.pushState("", document.title, location.pathname + location.search);
+  startGame(word, lang);
+}
+document.getElementById("btn-random").onclick = startRandomGame;
+
+function buildBoard(){
+  const len = state.puzzle.word.length;
+  const size = computeTileSize(len);
+  const board = document.getElementById("board");
+  board.style.setProperty("--tile-size", size+"px");
+  board.style.setProperty("--tile-gap","8px");
+  board.innerHTML = "";
+  for(let r=0;r<6;r++){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.dataset.row = r;
+    for(let c=0;c<len;c++){
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      row.appendChild(tile);
+    }
+    board.appendChild(row);
+  }
+}
+
+function buildKeyboard(){
+  const lang = state.puzzle.lang;
+  const rows = KEYROWS[lang];
+  const kb = document.getElementById("keyboard");
+  kb.innerHTML = "";
+  rows.forEach(rowKeys=>{
+    const krow = document.createElement("div");
+    krow.className = "krow";
+    rowKeys.forEach(k=>{
+      const btn = document.createElement("button");
+      btn.className = "key";
+      if(k==="ENTER"){ btn.classList.add("wide"); btn.textContent = t("enter"); btn.dataset.key="ENTER"; }
+      else if(k==="BACK"){ btn.classList.add("wide"); btn.textContent = t("backspace"); btn.dataset.key="BACK"; }
+      else { btn.textContent = k; btn.dataset.key = k; }
+      btn.onclick = ()=>handleKey(btn.dataset.key);
+      krow.appendChild(btn);
+    });
+    kb.appendChild(krow);
+  });
+}
+
+function showMsg(text){
+  const el = document.getElementById("msgline");
+  el.textContent = text;
+  setTimeout(()=>{ if(el.textContent===text) el.innerHTML="&nbsp;"; }, 1600);
+}
+
+function handleKey(key){
+  if(state.finished) return;
+  const len = state.puzzle.word.length;
+  if(key==="BACK"){
+    state.current = state.current.slice(0,-1);
+    renderCurrentRow();
+    return;
+  }
+  if(key==="ENTER"){
+    submitGuess();
+    return;
+  }
+  if(state.current.length < len){
+    state.current += key;
+    renderCurrentRow(true);
+  }
+}
+
+function renderCurrentRow(pop){
+  const rowIdx = state.guesses.length;
+  const row = document.querySelector('.row[data-row="'+rowIdx+'"]');
+  if(!row) return;
+  const tiles = row.children;
+  for(let i=0;i<tiles.length;i++){
+    const ch = state.current[i] || "";
+    tiles[i].textContent = ch;
+    tiles[i].classList.toggle("filled", !!ch);
+  }
+  if(pop && state.current.length>0){
+    const last = tiles[state.current.length-1];
+    last.classList.remove("pop"); void last.offsetWidth; last.classList.add("pop");
+  }
+}
+
+function evaluateGuess(guess, answer){
+  const len = answer.length;
+  const result = new Array(len).fill("absent");
+  const answerArr = answer.split("");
+  const used = new Array(len).fill(false);
+  for(let i=0;i<len;i++){
+    if(guess[i]===answerArr[i]){ result[i]="correct"; used[i]=true; }
+  }
+  for(let i=0;i<len;i++){
+    if(result[i]==="correct") continue;
+    for(let j=0;j<len;j++){
+      if(!used[j] && answerArr[j]===guess[i]){ result[i]="present"; used[j]=true; break; }
+    }
+  }
+  return result;
+}
+
+function submitGuess(){
+  const len = state.puzzle.word.length;
+  const rowIdx = state.guesses.length;
+  const row = document.querySelector('.row[data-row="'+rowIdx+'"]');
+  if(state.current.length !== len){
+    showMsg(t("guessLenErr",{n:len}));
+    row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
+    return;
+  }
+  const re = state.puzzle.lang==="ru" ? RU_ALPHA : EN_ALPHA;
+  if(!re.test(state.current)){
+    showMsg(t("guessCharErr"));
+    row.classList.remove("shake"); void row.offsetWidth; row.classList.add("shake");
+    return;
+  }
+
+  const guess = state.current;
+  const result = evaluateGuess(guess, state.puzzle.word);
+  state.guesses.push(guess);
+
+  const tiles = row.children;
+  const priority = {absent:0, present:1, correct:2};
+  result.forEach((st,i)=>{
+    setTimeout(()=>{
+      tiles[i].style.transform = "rotateX(90deg)";
+      setTimeout(()=>{
+        tiles[i].classList.add(st);
+        tiles[i].style.transform = "rotateX(0deg)";
+        const letter = guess[i];
+        const prev = state.keyStatus[letter];
+        if(!prev || priority[st] > priority[prev]){
+          state.keyStatus[letter] = st;
+          const keyBtn = document.querySelector('.key[data-key="'+letter+'"]');
+          if(keyBtn){ keyBtn.classList.remove("correct","present","absent"); keyBtn.classList.add(st); }
+        }
+      },150);
+    }, i*220);
+  });
+
+  const won = result.every(s=>s==="correct");
+  const attemptsUsed = state.guesses.length;
+  const isLast = attemptsUsed>=6;
+  const revealDelay = len*220 + 400;
+
+  state.current = "";
+
+  if(won){
+    state.finished = true;
+    setTimeout(()=>showEnd(true, attemptsUsed), revealDelay);
+  } else if(isLast){
+    state.finished = true;
+    setTimeout(()=>showEnd(false, attemptsUsed), revealDelay);
+  }
+}
+
+function showEnd(won, attempts){
+  document.getElementById("end-emoji").textContent = won ? "🎉" : "🫤";
+  document.getElementById("end-title").textContent = won ? t("winTitle") : t("loseTitle");
+  document.getElementById("end-word").textContent = state.puzzle.word;
+  document.getElementById("end-attempts").textContent = attempts + "/6";
+  document.getElementById("end-stats").style.display = won ? "flex" : "flex";
+  const wordEl = document.getElementById("end-word");
+  if(!won){
+    wordEl.style.display = "block";
+  }
+  openOverlay("end-overlay");
+}
+
+/* physical keyboard */
+document.addEventListener("keydown",(e)=>{
+  if(document.getElementById("game-screen").style.display!=="block") return;
+  if(document.getElementById("create-overlay").classList.contains("show")) return;
+  if(document.getElementById("intro-overlay").classList.contains("show")) return;
+  if(document.getElementById("end-overlay").classList.contains("show")) return;
+  const re = state.puzzle && state.puzzle.lang==="ru" ? RU_ALPHA : EN_ALPHA;
+  if(e.key==="Enter"){ handleKey("ENTER"); }
+  else if(e.key==="Backspace"){ handleKey("BACK"); }
+  else if(e.key.length===1 && re.test(e.key)){ handleKey(e.key.toUpperCase()); }
+});
+
+/* ============================= link handling on load ============================= */
+function handleHash(){
+  const hash = location.hash;
+  if(hash.startsWith("#w=")){
+    const code = hash.slice(3);
+    const decoded = decodeWord(code);
+    if(!decoded){
+      document.getElementById("home-screen").style.display="none";
+      openOverlay("broken-overlay");
+      return;
+    }
+    state.uiLang = decoded.lang; // guesser plays in the puzzle's alphabet/UI language
+    applyLang();
+    document.getElementById("home-screen").style.display="none";
+    document.getElementById("intro-len").textContent = decoded.word.length;
+    document.getElementById("intro-desc").innerHTML = t("introDesc",{n:decoded.word.length});
+    openOverlay("intro-overlay");
+    document.getElementById("btn-start").onclick = ()=>{
+      closeOverlay("intro-overlay");
+      startGame(decoded.word, decoded.lang);
+    };
+  }
+}
+
+/* ============================= init ============================= */
+applyTheme();
+applyLang();
+handleHash();
+</script>
+</body>
+</html>
