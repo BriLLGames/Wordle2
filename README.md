@@ -1,2 +1,0 @@
-# Wordle2
-hz
