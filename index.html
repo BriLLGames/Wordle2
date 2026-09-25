@@ -751,6 +751,15 @@ function showEnd(won, attempts){
   openOverlay("end-overlay");
 }
 
+/* Any <button> that stays focused after a click can be re-triggered by a later
+   Enter/Space keypress (native browser behavior), even while its overlay is
+   visually hidden (our overlays use opacity, not display:none, so they and
+   their buttons stay in the DOM). Blurring right after click prevents that. */
+document.addEventListener("click",(e)=>{
+  const btn = e.target.closest("button");
+  if(btn) setTimeout(()=>btn.blur(), 0);
+});
+
 /* physical keyboard */
 document.addEventListener("keydown",(e)=>{
   if(document.getElementById("game-screen").style.display!=="block") return;
@@ -758,9 +767,10 @@ document.addEventListener("keydown",(e)=>{
   if(document.getElementById("intro-overlay").classList.contains("show")) return;
   if(document.getElementById("end-overlay").classList.contains("show")) return;
   const re = state.puzzle && state.puzzle.lang==="ru" ? RU_ALPHA : EN_ALPHA;
-  if(e.key==="Enter"){ handleKey("ENTER"); }
-  else if(e.key==="Backspace"){ handleKey("BACK"); }
-  else if(e.key.length===1 && re.test(e.key)){ handleKey(e.key.toUpperCase()); }
+  if(e.key==="Enter"){ e.preventDefault(); handleKey("ENTER"); }
+  else if(e.key==="Backspace"){ e.preventDefault(); handleKey("BACK"); }
+  else if(e.key===" "){ e.preventDefault(); }
+  else if(e.key.length===1 && re.test(e.key)){ e.preventDefault(); handleKey(e.key.toUpperCase()); }
 });
 
 /* ============================= link handling on load ============================= */
